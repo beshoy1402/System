@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flavor House — NFC Restaurant Ordering</title>
+<meta name="description" content="Scan, order and enjoy at Flavor House restaurant. Fast NFC-powered ordering system.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>">
+<style>
+:root{
+  --accent:#e85d2a;
+  --bg:#f9f7f4;
+  --bg2:#ffffff;
+  --bg3:#f1ede8;
+  --text:#1a1a1a;
+  --text2:#6b6b6b;
+  --text3:#9a9a9a;
+  --border:rgba(0,0,0,0.1);
+  --border2:rgba(0,0,0,0.18);
+  --success:#16a34a;
+  --successbg:#f0fdf4;
+  --warning:#d97706;
+  --warningbg:#fffbeb;
+  --danger:#dc2626;
+  --dangerbg:#fef2f2;
+  --info:#2563eb;
+  --infobg:#eff6ff;
+  --shadow:0 2px 16px rgba(0,0,0,0.08);
+  --shadow2:0 4px 32px rgba(0,0,0,0.13);
+  --radius:10px;
+  --radius2:16px;
+  --font:'Segoe UI',system-ui,sans-serif;
+}
+[data-dark="1"]{
+  --bg:#111010;--bg2:#1c1b1b;--bg3:#242323;
+  --text:#f0ede8;--text2:#a8a3a0;--text3:#6b6561;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.14);
+  --shadow:0 2px 16px rgba(0,0,0,0.4);--shadow2:0 4px 32px rgba(0,0,0,0.5);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;transition:background .3s,color .3s}
+button{cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s}
+button:active{transform:scale(.97)}
+input,select,textarea{font-family:inherit;outline:none}
+img{display:block}
+a{color:var(--accent);text-decoration:none}
+.hidden{display:none!important}
+/* Animations */
+@keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes dot{0%,60%,100%{opacity:.25}30%{opacity:1}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+@keyframes pop{0%{transform:scale(.8);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.anim1{animation:fadeInUp .5s ease both}
+.anim2{animation:fadeInUp .5s .1s ease both}
+.anim3{animation:fadeInUp .5s .2s ease both}
+.anim4{animation:fadeInUp .5s .3s ease both}
+.anim5{animation:fadeInUp .5s .4s ease both}
+.float-anim{animation:float 3.5s ease-in-out infinite}
+.pulse-anim{animation:pulse 2.2s ease-in-out infinite}
+/* Topbar */
+#topbar{position:sticky;top:0;z-index:50;background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;animation:slideDown .4s ease}
+.topbar-title{font-size:18px;font-weight:600;color:var(--accent);display:flex;align-items:center;gap:8px}
+.topbar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;border-radius:var(--radius);padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{opacity:.88}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-outline:hover{background:var(--bg3);color:var(--text)}
+.btn-accent-outline{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn-accent-outline:hover{background:var(--accent);color:#fff}
+.btn-danger-outline{background:transparent;color:var(--danger);border:1px solid var(--danger)}
+.btn-success{background:var(--success);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-lg{padding:13px 32px;font-size:16px;border-radius:var(--radius2)}
+/* Cards */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;transition:box-shadow .2s,transform .15s}
+.card:hover{box-shadow:var(--shadow);transform:translateY(-2px)}
+.card-body{padding:14px}
+/* Badge */
+.badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.badge-green{background:var(--successbg);color:var(--success)}
+.badge-amber{background:var(--warningbg);color:var(--warning)}
+.badge-red{background:var(--dangerbg);color:var(--danger)}
+.badge-blue{background:var(--infobg);color:var(--info)}
+.badge-gray{background:var(--bg3);color:var(--text2)}
+/* Form */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px}
+.form-control{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:var(--radius);background:var(--bg3);color:var(--text);font-size:14px;transition:border-color .2s}
+.form-control:focus{border-color:var(--accent)}
+textarea.form-control{resize:vertical}
+/* Stat card */
+.stat-card{background:var(--bg3);border-radius:var(--radius);padding:16px;text-align:center}
+.stat-value{font-size:26px;font-weight:700;color:var(--accent)}
+.stat-label{font-size:12px;color:var(--text2);margin-top:4px}
+/* Section */
+.section{max-width:900px;margin:0 auto;padding:20px 16px 100px}
+/* Toast */
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 20px;border-radius:var(--radius2);font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+/* Chat */
+#chatFab{position:fixed;bottom:20px;right:20px;width:54px;height:54px;background:var(--accent);border:none;border-radius:50%;font-size:22px;color:#fff;z-index:200;box-shadow:var(--shadow2);display:flex;align-items:center;justify-content:center;transition:transform .2s,background .2s}
+#chatFab:hover{transform:scale(1.08)}
+#chatPanel{position:fixed;bottom:84px;right:20px;width:340px;max-height:500px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);display:flex;flex-direction:column;z-index:199;box-shadow:var(--shadow2);animation:pop .3s ease}
+#chatHeader{padding:12px 14px;background:var(--accent);border-radius:var(--radius2) var(--radius2) 0 0;display:flex;align-items:center;justify-content:space-between}
+#chatMsgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:200px;max-height:300px}
+#chatMsgs::-webkit-scrollbar{width:3px}
+#chatMsgs::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.msg-user{align-self:flex-end;background:var(--accent);color:#fff;border-radius:14px 14px 3px 14px;padding:8px 12px;font-size:13px;max-width:82%;line-height:1.5;animation:fadeInUp .25s ease}
+.msg-bot{align-self:flex-start;background:var(--bg3);color:var(--text);border-radius:14px 14px 14px 3px;padding:8px 12px;font-size:13px;max-width:82%;line-height:1.5;animation:fadeInUp .25s ease}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);display:inline-block;margin:0 2px;animation:dot 1.4s infinite}
+.typing-dot:nth-child(2){animation-delay:.2s}
+.typing-dot:nth-child(3){animation-delay:.4s}
+#chatSuggests{padding:6px 10px;display:flex;gap:6px;overflow-x:auto;border-top:1px solid var(--border);flex-wrap:wrap}
+.suggest-chip{background:transparent;border:1px solid var(--accent);border-radius:20px;padding:4px 11px;font-size:11px;color:var(--accent);white-space:nowrap;cursor:pointer;transition:all .15s}
+.suggest-chip:hover{background:var(--accent);color:#fff}
+#chatInputRow{padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:8px}
+#chatInput{flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:20px;background:var(--bg3);color:var(--text);font-size:13px}
+/* Landing */
+#landing{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px 20px;background:linear-gradient(135deg,#1a0800 0%,#3d1500 50%,#1a0800 100%);position:relative;overflow:hidden}
+.orb{position:absolute;border-radius:50%;background:var(--accent);pointer-events:none}
+/* Menu grid */
+#menuGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+#menuGrid.list-layout{grid-template-columns:1fr}
+#menuGrid.list-layout .menu-card{display:flex;flex-direction:row}
+#menuGrid.list-layout .menu-card img{width:100px;height:80px;flex-shrink:0}
+/* Admin tabs */
+.admin-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.admin-tab{padding:8px 16px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text);font-size:13px}
+.admin-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Table */
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)}
+.data-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--bg3)}
+/* Category pills */
+.cat-pills{display:flex;gap:8px;margin-bottom:18px;overflow-x:auto;padding-bottom:4px;flex-wrap:wrap}
+.cat-pill{padding:6px 16px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text);font-size:13px;white-space:nowrap;cursor:pointer;transition:all .2s}
+.cat-pill.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Order status row */
+.status-btns{display:flex;gap:6px;flex-wrap:wrap}
+.status-btn{padding:4px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:12px;cursor:pointer}
+.status-btn.active-pending{background:#eff6ff;color:var(--info);border-color:var(--info)}
+.status-btn.active-preparing{background:var(--warningbg);color:var(--warning);border-color:var(--warning)}
+.status-btn.active-done{background:var(--successbg);color:var(--success);border-color:var(--success)}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .2s ease}
+.modal{background:var(--bg2);border-radius:var(--radius2);padding:24px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;animation:pop .3s ease}
+/* RTL */
+[dir="rtl"] .data-table th,[dir="rtl"] .data-table td{text-align:right}
+[dir="rtl"] #chatPanel{right:auto;left:20px}
+[dir="rtl"] #chatFab{right:auto;left:20px}
+[dir="rtl"] .msg-user{border-radius:14px 14px 14px 3px}
+[dir="rtl"] .msg-bot{border-radius:14px 14px 3px 14px}
+[dir="rtl"] #chatMsgs{direction:rtl}
+/* Responsive */
+@media(max-width:600px){
+  #menuGrid{grid-template-columns:repeat(auto-fill,minmax(155px,1fr))}
+  #chatPanel{width:calc(100vw - 24px);right:12px}
+  [dir="rtl"] #chatPanel{left:12px;right:auto}
+  .topbar-title span.app-sub{display:none}
+  .section{padding:14px 12px 90px}
+}
+/* Print receipt */
+@media print{
+  #chatFab,#chatPanel,#topbar,#landing,#toast{display:none!important}
+  body{background:#fff;color:#000}
+}
+/* Shimmer skeleton */
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--border) 50%,var(--bg3) 75%);background-size:800px 100%;animation:shimmer 1.5s infinite}
+</style>
+</head>
+<body>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Views -->
+<div id="view-landing" class="hidden"></div>
+<div id="view-menu" class="hidden"></div>
+<div id="view-cart" class="hidden"></div>
+<div id="view-checkout" class="hidden"></div>
+<div id="view-success" class="hidden"></div>
+<div id="view-admin" class="hidden"></div>
+
+<!-- Chat FAB -->
+<button id="chatFab" onclick="chatToggle()" title="Chat with us" aria-label="Open chat">💬</button>
+
+<!-- Chat Panel -->
+<div id="chatPanel" class="hidden">
+  <div id="chatHeader">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;background:rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px">🤖</div>
+      <div><div id="chatBotName" style="font-weight:600;font-size:13px;color:#fff"></div><div style="font-size:11px;color:rgba(255,255,255,0.75)" id="chatBotStatus"></div></div>
+    </div>
+    <button onclick="chatToggle()" style="background:rgba(255,255,255,0.18);border:none;border-radius:50%;width:28px;height:28px;color:#fff;font-size:15px;cursor:pointer">✕</button>
+  </div>
+  <div id="chatMsgs"></div>
+  <div id="chatSuggests"></div>
+  <div id="chatInputRow">
+    <input id="chatInput" placeholder="" onkeydown="if(event.key==='Enter')chatSend()" autocomplete="off">
+    <button onclick="chatSend()" class="btn btn-primary" style="border-radius:50%;width:36px;height:36px;padding:0;flex-shrink:0">↑</button>
+  </div>
+</div>
+
+<!-- Modal container -->
+<div id="modalContainer"></div>
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE & STORAGE
+// ═══════════════════════════════════════════
+const SK = 'fh_prod_v1';
+function defState() {
+  return {
+    menu: [
+      {id:1,name:'Grilled Chicken',nameAr:'دجاج مشوي',price:189,cat:'Meals',img:'https://images.unsplash.com/photo-1598103442097-8b74394b95c7?w=400&h=280&fit=crop',desc:'Juicy grilled chicken with herbs & lemon',descAr:'دجاج مشوي طازج مع الأعشاب والليمون',available:true,featured:true},
+      {id:2,name:'Caesar Salad',nameAr:'سلطة سيزر',price:129,cat:'Meals',img:'https://images.unsplash.com/photo-1546793665-c74683f339c1?w=400&h=280&fit=crop',desc:'Fresh romaine, croutons, parmesan',descAr:'خس روماني طازج مع خبز محمص وبارميزان',available:true,featured:false},
+      {id:3,name:'Beef Burger',nameAr:'برجر لحم بقري',price:219,cat:'Meals',img:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&h=280&fit=crop',desc:'Double beef patty, cheese, pickles & special sauce',descAr:'كتلتا لحم مزدوجتان مع جبن ومخللات وصوص خاص',available:true,featured:true},
+      {id:4,name:'Margherita Pizza',nameAr:'بيتزا مرغريتا',price:249,cat:'Meals',img:'https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=400&h=280&fit=crop',desc:'Classic tomato, fresh mozzarella, basil',descAr:'طماطم كلاسيكية وموزاريلا طازجة وريحان',available:true,featured:false},
+      {id:5,name:'Grilled Salmon',nameAr:'سلمون مشوي',price:299,cat:'Meals',img:'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&h=280&fit=crop',desc:'Atlantic salmon with lemon butter sauce',descAr:'سلمون أطلسي مع صوص الليمون والزبدة',available:true,featured:true},
+      {id:6,name:'Lemonade',nameAr:'عصير ليمون',price:49,cat:'Drinks',img:'https://images.unsplash.com/photo-1621263764928-df1444c5e859?w=400&h=280&fit=crop',desc:'Fresh squeezed lemon with mint & sugar',descAr:'ليمون طازج معصور مع النعناع والسكر',available:true,featured:false},
+      {id:7,name:'Iced Coffee',nameAr:'قهوة مثلجة',price:65,cat:'Drinks',img:'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?w=400&h=280&fit=crop',desc:'Cold brew with milk & vanilla syrup',descAr:'قهوة باردة مع الحليب وشراب الفانيليا',available:true,featured:false},
+      {id:8,name:'Mango Juice',nameAr:'عصير مانجو',price:55,cat:'Drinks',img:'https://images.unsplash.com/photo-1546173159-315724a31696?w=400&h=280&fit=crop',desc:'100% fresh mango blend — no sugar added',descAr:'خلط مانجو طازج 100% بدون سكر مضاف',available:true,featured:false},
+      {id:9,name:'Strawberry Smoothie',nameAr:'سموذي فراولة',price:75,cat:'Drinks',img:'https://images.unsplash.com/photo-1553530666-ba11a7da3888?w=400&h=280&fit=crop',desc:'Fresh strawberry blend with yoghurt',descAr:'خلط فراولة طازج مع الزبادي',available:true,featured:false},
+      {id:10,name:'Chocolate Lava Cake',nameAr:'كيكة لافا شوكولاتة',price:99,cat:'Desserts',img:'https://images.unsplash.com/photo-1624353365286-3f8d62daad51?w=400&h=280&fit=crop',desc:'Warm cake with molten chocolate center',descAr:'كيكة دافئة بمركز شوكولاتة منصهر',available:true,featured:true},
+      {id:11,name:'Tiramisu',nameAr:'تيراميسو',price:89,cat:'Desserts',img:'https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=400&h=280&fit=crop',desc:'Classic Italian coffee-cream dessert',descAr:'حلوى إيطالية كلاسيكية بالقهوة والكريمة',available:true,featured:false},
+      {id:12,name:'Kunafa',nameAr:'كنافة',price:79,cat:'Desserts',img:'https://images.unsplash.com/photo-1593526613712-7b4b9a707330?w=400&h=280&fit=crop',desc:'Traditional Egyptian kunafa with cream',descAr:'كنافة مصرية تقليدية بالقشطة',available:true,featured:true},
+    ],
+    orders: [],
+    tables: 20,
+    settings: {
+      accent:'#e85d2a', darkMode:false, font:'sans', layout:'grid',
+      tax:14, serviceCharge:10, discount:0,
+      lang:'en', currency:'EGP', currencySymbol:'ج.م',
+      restaurantName:'Flavor House', restaurantNameAr:'فلايفر هاوس',
+      tableCount:20, wifi:'FH_Guest', wifiPass:'flavorhouse2024',
+      openTime:'10:00 AM', closeTime:'12:00 AM',
+      adminUser:'admin', adminPass:'admin123',
+      enableDiscountCode:true, discountCode:'WELCOME10', discountCodePct:10,
+      enableLoyalty:false, enableReservations:false,
+    },
+    nextOrderId: 1001,
+    nextMenuId: 13,
+    adminLoggedIn: false,
+    coupons:[{code:'WELCOME10',pct:10,uses:0},{code:'SUMMER20',pct:20,uses:0}],
+  };
+}
+
+let S = (() => { try { const d=JSON.parse(localStorage.getItem(SK)); return d && d.menu ? {...defState(),...d,settings:{...defState().settings,...(d.settings||{})}} : defState(); } catch(e){return defState();} })();
+function save(){try{localStorage.setItem(SK,JSON.stringify(S));}catch(e){}}
+
+// ═══════════════════════════════════════════
+//  LANGUAGE & THEME
+// ═══════════════════════════════════════════
+const LANG = {
+  en: {
+    appName:'Flavor House', tagline:'Scan. Order. Enjoy.',
+    startOrder:'Start Ordering', adminBtn:'Admin',
+    menu:'Menu', cart:'Cart', checkout:'Checkout', admin:'Admin Panel',
+    cats:['All','Meals','Drinks','Desserts'],
+    catMap:{All:null,Meals:'Meals',Drinks:'Drinks',Desserts:'Desserts'},
+    addCart:'Add to Cart', addedCart:'Added!', unavailable:'Unavailable',
+    yourCart:'Your Cart', empty:'Your cart is empty — go explore the menu!',
+    subtotal:'Subtotal', tax:'VAT', service:'Service Charge', discount:'Discount',
+    grandTotal:'Grand Total', couponCode:'Coupon Code', applyCoupon:'Apply', couponOk:'Coupon applied!', couponBad:'Invalid coupon',
+    tableNo:'Table Number', notes:'Special Notes (e.g. no onions, extra sauce)',
+    placeOrder:'Confirm Order', orderPlaced:'Order Confirmed! 🎉',
+    orderId:'Order ID', backMenu:'Back to Menu', estimatedTime:'Estimated time: 20–30 min',
+    totalRev:'Total Revenue', totalOrders:'Orders', todayOrders:"Today", menuItems:'Items',
+    pendingOrders:'Pending', recentOrders:'Recent Orders', noOrders:'No orders yet',
+    dashboard:'Dashboard', menuMgmt:'Menu', orderMgmt:'Orders', designCtrl:'Design',
+    settingsTab:'Settings', couponsTab:'Coupons', logout:'Logout',
+    pending:'Pending', preparing:'Preparing', done:'Done', cancelled:'Cancelled',
+    addItem:'Add Item', editItem:'Edit', deleteItem:'Delete', saveItem:'Save', cancel:'Cancel',
+    iName:'Item Name', iPrice:'Price (EGP)', iCat:'Category', iDesc:'Description', iImg:'Image URL', iAvailable:'Available',
+    themeColor:'Accent Color', darkModeLabel:'Dark Mode', fontStyle:'Font', layoutStyle:'Layout',
+    grid:'Grid', list:'List', taxRate:'VAT (%)', svcRate:'Service Charge (%)', discRate:'Global Discount (%)',
+    allTables:'All Tables', filterTable:'Filter Table',
+    username:'Username', password:'Password', login:'Login', wrongCreds:'Wrong credentials',
+    hint:'Default: admin / admin123',
+    langBtn:'عربي', feats:['NFC Tap-to-Order','Instant Kitchen Alerts','Real-time Tracking','Bilingual Menu'],
+    chatName:'Flavor Assistant', chatStatus:'Here to help you order',
+    chatPlaceholder:'Ask me anything...',
+    chatWelcome:'👋 Hello! I\'m your Flavor House assistant. Ask me about our menu, prices, recommendations, allergens, or anything else!',
+    chatSuggests:['What do you recommend?','Cheapest meal?','Any desserts?','Do you have vegetarian?','What\'s popular?','Hours?'],
+    table:'Table', featured:'Featured', wifiLabel:'WiFi',
+    rName:'Restaurant Name', rNameAr:'Restaurant Name (Arabic)', rWifi:'WiFi Network', rWifiPass:'WiFi Password',
+    rOpen:'Opening Time', rClose:'Closing Time', rAdmin:'Admin Username', rAdminPass:'Admin Password',
+    saveSettings:'Save Settings', settingsSaved:'Settings saved!',
+    addCoupon:'Add Coupon', couponCodeLbl:'Code', couponPct:'Discount %', couponUses:'Uses', deleteCoupon:'Delete',
+    noCoupons:'No coupons yet',
+    receiptTitle:'Receipt',
+  },
+  ar: {
+    appName:'فلايفر هاوس', tagline:'امسح. اطلب. استمتع.',
+    startOrder:'ابدأ الطلب', adminBtn:'الإدارة',
+    menu:'القائمة', cart:'السلة', checkout:'الدفع', admin:'لوحة التحكم',
+    cats:['الكل','وجبات','مشروبات','حلويات'],
+    catMap:{'الكل':null,'وجبات':'Meals','مشروبات':'Drinks','حلويات':'Desserts'},
+    addCart:'أضف للسلة', addedCart:'تمت الإضافة!', unavailable:'غير متوفر',
+    yourCart:'سلتك', empty:'السلة فارغة — استكشف القائمة!',
+    subtotal:'المجموع الجزئي', tax:'ضريبة القيمة المضافة', service:'رسوم الخدمة', discount:'خصم',
+    grandTotal:'الإجمالي', couponCode:'كود الخصم', applyCoupon:'تطبيق', couponOk:'تم تطبيق الكوبون!', couponBad:'كوبون غير صالح',
+    tableNo:'رقم الطاولة', notes:'ملاحظات خاصة (مثل: بدون بصل)',
+    placeOrder:'تأكيد الطلب', orderPlaced:'تم تأكيد الطلب! 🎉',
+    orderId:'رقم الطلب', backMenu:'العودة للقائمة', estimatedTime:'الوقت المتوقع: ٢٠–٣٠ دقيقة',
+    totalRev:'إجمالي الإيراد', totalOrders:'الطلبات', todayOrders:'اليوم', menuItems:'الأصناف',
+    pendingOrders:'معلق', recentOrders:'آخر الطلبات', noOrders:'لا توجد طلبات بعد',
+    dashboard:'لوحة البيانات', menuMgmt:'القائمة', orderMgmt:'الطلبات', designCtrl:'التصميم',
+    settingsTab:'الإعدادات', couponsTab:'كوبونات', logout:'خروج',
+    pending:'معلق', preparing:'يُحضَّر', done:'تم', cancelled:'ملغى',
+    addItem:'إضافة صنف', editItem:'تعديل', deleteItem:'حذف', saveItem:'حفظ', cancel:'إلغاء',
+    iName:'اسم الصنف', iPrice:'السعر (ج.م)', iCat:'الفئة', iDesc:'الوصف', iImg:'رابط الصورة', iAvailable:'متاح',
+    themeColor:'لون التمييز', darkModeLabel:'الوضع الداكن', fontStyle:'الخط', layoutStyle:'التخطيط',
+    grid:'شبكة', list:'قائمة', taxRate:'ضريبة (%)', svcRate:'رسوم الخدمة (%)', discRate:'خصم عام (%)',
+    allTables:'كل الطاولات', filterTable:'تصفية',
+    username:'اسم المستخدم', password:'كلمة المرور', login:'دخول', wrongCreds:'بيانات خاطئة',
+    hint:'الافتراضي: admin / admin123',
+    langBtn:'English', feats:['اطلب بمسح NFC','تنبيهات فورية للمطبخ','تتبع لحظي','قائمة ثنائية اللغة'],
+    chatName:'مساعد فلايفر', chatStatus:'هنا لمساعدتك في الطلب',
+    chatPlaceholder:'اسألني أي شيء...',
+    chatWelcome:'👋 مرحباً! أنا مساعدك في فلايفر هاوس. اسألني عن القائمة والأسعار والتوصيات أو أي شيء آخر!',
+    chatSuggests:['ماذا تنصح؟','أرخص وجبة؟','عندكم حلويات؟','أكل نباتي؟','الأكثر طلباً؟','مواعيد العمل؟'],
+    table:'طاولة', featured:'مميز', wifiLabel:'واي فاي',
+    rName:'اسم المطعم', rNameAr:'اسم المطعم (عربي)', rWifi:'شبكة واي فاي', rWifiPass:'كلمة مرور الواي فاي',
+    rOpen:'وقت الفتح', rClose:'وقت الإغلاق', rAdmin:'مستخدم الإدارة', rAdminPass:'كلمة مرور الإدارة',
+    saveSettings:'حفظ الإعدادات', settingsSaved:'تم حفظ الإعدادات!',
+    addCoupon:'إضافة كوبون', couponCodeLbl:'الكود', couponPct:'نسبة الخصم', couponUses:'الاستخدامات', deleteCoupon:'حذف',
+    noCoupons:'لا توجد كوبونات',
+    receiptTitle:'إيصال',
+  }
+};
+
+let T = () => LANG[S.settings.lang];
+let isAr = () => S.settings.lang === 'ar';
+let dir = () => isAr() ? 'rtl' : 'ltr';
+let fmt = (n) => `${S.settings.currencySymbol} ${Math.round(n).toLocaleString()}`;
+
+function applyTheme() {
+  const s = S.settings;
+  document.documentElement.style.setProperty('--accent', s.accent);
+  document.documentElement.setAttribute('data-dark', s.darkMode ? '1' : '0');
+  document.documentElement.setAttribute('dir', dir());
+  const fonts = {sans:"'Segoe UI',system-ui,sans-serif", serif:"Georgia,'Times New Roman',serif", mono:"'Courier New',monospace", cairo:"'Cairo',system-ui,sans-serif"};
+  document.body.style.fontFamily = fonts[s.font] || fonts.sans;
+}
+
+// ═══════════════════════════════════════════
+//  CART STATE
+// ═══════════════════════════════════════════
+let cart = [];
+let currentView = 'landing';
+let selCat = '';
+let adminSec = 'dashboard';
+let editingItemId = null;
+let filterTable = '';
+let chatOpen = false;
+let chatHistory = [];
+let couponApplied = null;
+
+function cartSubtotal() { return cart.reduce((a,i) => a + i.price * i.qty, 0); }
+function cartTotal() {
+  const sub = cartSubtotal();
+  const tax = sub * S.settings.tax / 100;
+  const svc = sub * S.settings.serviceCharge / 100;
+  const disc = sub * S.settings.discount / 100;
+  const couponDisc = couponApplied ? sub * couponApplied.pct / 100 : 0;
+  return Math.max(0, sub + tax + svc - disc - couponDisc);
+}
+
+// ═══════════════════════════════════════════
+//  ROUTER
+// ═══════════════════════════════════════════
+function goTo(v) {
+  currentView = v;
+  document.querySelectorAll('[id^="view-"]').forEach(el => el.classList.add('hidden'));
+  const el = document.getElementById('view-' + v);
+  if (el) { el.classList.remove('hidden'); el.innerHTML = ''; }
+  renderView(v);
+  window.scrollTo(0, 0);
+  updateChatLocale();
+}
+
+function renderView(v) {
+  const el = document.getElementById('view-' + v);
+  if (!el) return;
+  if (v === 'landing') el.innerHTML = buildLanding();
+  else if (v === 'menu') el.innerHTML = buildMenu();
+  else if (v === 'cart') el.innerHTML = buildCart();
+  else if (v === 'checkout') el.innerHTML = buildCheckout();
+  else if (v === 'success') el.innerHTML = buildSuccess();
+  else if (v === 'admin') el.innerHTML = S.adminLoggedIn ? buildAdmin() : buildLogin();
+}
+
+// ═══════════════════════════════════════════
+//  TOPBAR
+// ═══════════════════════════════════════════
+function topBar(title, opts = {}) {
+  const l = T();
+  const cartCount = cart.reduce((a, i) => a + i.qty, 0);
+  return `<div id="topbar" dir="${dir()}">
+    <div class="topbar-title">
+      <span>🍽️</span>
+      <span>${title}</span>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="toggleLang()">${l.langBtn}</button>
+      <button class="btn btn-sm" onclick="toggleDark()" title="Toggle dark mode" style="padding:5px 8px;border:1px solid var(--border2);background:transparent;border-radius:var(--radius)">${S.settings.darkMode?'☀️':'🌙'}</button>
+      ${currentView !== 'admin' ? `<button class="btn btn-accent-outline btn-sm" onclick="goTo('admin')">${l.adminBtn}</button>` : ''}
+      ${opts.showCart ? `<button class="btn btn-primary btn-sm" onclick="goTo('cart')" style="gap:6px">
+        ${l.cart}${cartCount ? `<span style="background:#fff;color:var(--accent);border-radius:50%;min-width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">${cartCount}</span>` : ''}
+      </button>` : ''}
+      ${opts.showBack ? `<button class="btn btn-outline btn-sm" onclick="goTo('${opts.backTo || 'menu'}')">${isAr() ? '→' : '←'} ${opts.backLabel || ''}</button>` : ''}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  LANDING
+// ═══════════════════════════════════════════
+function buildLanding() {
+  const l = T();
+  const orbs = Array.from({length:10},(_,i)=>`<div class="orb" style="width:${30+i*18}px;height:${30+i*18}px;opacity:${0.03+i*0.012};top:${8+i*9}%;left:${4+i*10}%;animation:float ${2.8+i*.4}s ${i*.25}s ease-in-out infinite"></div>`).join('');
+  return `<div id="landing" dir="${dir()}">
+    ${orbs}
+    <div class="anim1 float-anim" style="font-size:80px;margin-bottom:16px;filter:drop-shadow(0 4px 20px rgba(232,93,42,.4))">🍽️</div>
+    <h1 class="anim2" style="font-size:38px;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-1px">${S.settings.lang==='ar'?S.settings.restaurantNameAr:S.settings.restaurantName}</h1>
+    <p class="anim3" style="font-size:16px;color:rgba(255,255,255,.6);margin-bottom:12px">${l.tagline}</p>
+    <div style="display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:32px" class="anim3">
+      <span style="font-size:12px;color:rgba(255,255,255,.5)">📶 ${l.wifiLabel}: </span>
+      <span style="font-size:12px;color:rgba(255,255,255,.8);font-weight:600">${S.settings.wifi}</span>
+      <span style="font-size:12px;color:rgba(255,255,255,.4)">·</span>
+      <span style="font-size:12px;color:rgba(255,255,255,.6)">${S.settings.wifiPass}</span>
+    </div>
+    <div class="anim3" style="display:flex;gap:8px;margin-bottom:36px;flex-wrap:wrap;justify-content:center">
+      ${l.feats.map(f=>`<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.13);border-radius:20px;padding:5px 13px;font-size:12px;color:rgba(255,255,255,.75)">✓ ${f}</div>`).join('')}
+    </div>
+    <button class="btn btn-lg pulse-anim anim4" onclick="startOrder()" style="background:var(--accent);color:#fff;border:none;box-shadow:0 8px 28px rgba(232,93,42,.45);font-size:17px">🍴 ${l.startOrder}</button>
+    <button class="anim5" onclick="goTo('admin')" style="margin-top:14px;background:transparent;border:1px solid rgba(255,255,255,.25);border-radius:var(--radius2);padding:9px 28px;font-size:13px;color:rgba(255,255,255,.55);cursor:pointer">${l.adminBtn}</button>
+    <div style="position:absolute;bottom:20px;left:0;right:0;text-align:center;font-size:11px;color:rgba(255,255,255,.3)">${l.appName} · ${S.settings.openTime} – ${S.settings.closeTime}</div>
+  </div>`;
+}
+
+function startOrder() {
+  selCat = T().cats[0];
+  goTo('menu');
+}
+
+// ═══════════════════════════════════════════
+//  MENU
+// ═══════════════════════════════════════════
+function buildMenu() {
+  const l = T();
+  if (!selCat || !l.cats.includes(selCat)) selCat = l.cats[0];
+  const filtered = l.catMap[selCat] ? S.menu.filter(i=>i.cat===l.catMap[selCat]) : S.menu;
+  const isGrid = S.settings.layout === 'grid';
+  const ar = isAr();
+
+  const pills = l.cats.map(c=>`<button class="cat-pill${selCat===c?' active':''}" onclick="setCat('${c}')">${c}</button>`).join('');
+
+  const cards = filtered.map((item,i) => {
+    const name = ar ? item.nameAr : item.name;
+    const desc = ar ? item.descAr : item.desc;
+    const inCart = cart.find(x=>x.id===item.id);
+    return `<div class="card menu-card anim${Math.min(i+1,5)}" style="${isGrid?'':'display:flex;align-items:center'}">
+      <div style="position:relative">
+        <img src="${item.img}" alt="${name}" style="width:${isGrid?'100%':'100px'};height:${isGrid?'160px':'85px'};object-fit:cover" loading="lazy" onerror="this.src='https://via.placeholder.com/400x280/e85d2a/fff?text=🍽️'">
+        ${item.featured?`<span class="badge badge-amber" style="position:absolute;top:8px;${ar?'left':'right'}:8px">⭐ ${l.featured}</span>`:''}
+        ${!item.available?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:600">${l.unavailable}</div>`:''}
+      </div>
+      <div class="card-body" style="flex:1">
+        <div style="font-weight:600;font-size:14px;margin-bottom:3px">${name}</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.4">${desc}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;color:var(--accent);font-size:15px">${fmt(item.price)}</span>
+          ${item.available
+            ? inCart
+              ? `<div style="display:flex;align-items:center;gap:6px">
+                  <button onclick="chgQty(${item.id},-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:transparent;color:var(--text);font-size:16px">−</button>
+                  <span style="font-weight:600;font-size:14px;min-width:18px;text-align:center">${inCart.qty}</span>
+                  <button onclick="chgQty(${item.id},1)" style="width:26px;height:26px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:16px">+</button>
+                </div>`
+              : `<button class="btn btn-primary btn-sm" onclick="addToCart(${item.id})">${l.addCart}</button>`
+            : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return `${topBar('🍽️ ' + (ar ? S.settings.restaurantNameAr : S.settings.restaurantName), {showCart:true})}
+  <div class="section" dir="${dir()}">
+    <div class="cat-pills">${pills}</div>
+    <div id="menuGrid" class="${isGrid?'':'list-layout'}">${cards}</div>
+    ${filtered.length===0?`<div style="text-align:center;padding:60px 20px;color:var(--text2)">No items in this category</div>`:''}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  CART
+// ═══════════════════════════════════════════
+function buildCart() {
+  const l = T(); const ar = isAr();
+  const sub = cartSubtotal();
+  const taxA = sub * S.settings.tax / 100;
+  const svcA = sub * S.settings.serviceCharge / 100;
+  const discA = sub * S.settings.discount / 100;
+  const couponDiscA = couponApplied ? sub * couponApplied.pct / 100 : 0;
+  const total = Math.max(0, sub + taxA + svcA - discA - couponDiscA);
+
+  const items = cart.map(item => `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+    <img src="${item.img}" style="width:60px;height:52px;object-fit:cover;border-radius:var(--radius);flex-shrink:0" onerror="this.src='https://via.placeholder.com/60'">
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${ar?item.nameAr:item.name}</div>
+      <div style="color:var(--accent);font-size:13px;font-weight:600">${fmt(item.price)}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <button onclick="chgQty(${item.id},-1)" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--border2);background:transparent;font-size:15px">−</button>
+      <span style="font-weight:600;min-width:18px;text-align:center">${item.qty}</span>
+      <button onclick="chgQty(${item.id},1)" style="width:26px;height:26px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:15px">+</button>
+      <button onclick="removeItem(${item.id})" style="width:26px;height:26px;border-radius:50%;border:1px solid var(--danger);background:transparent;color:var(--danger);font-size:13px;margin-${ar?'right':'left'}:4px">✕</button>
+    </div>
+  </div>`).join('');
+
+  const summary = `<div class="card" style="margin-top:16px">
+    <div class="card-body">
+      ${[
+        [l.subtotal, fmt(sub)],
+        [`${l.tax} (${S.settings.tax}%)`, fmt(taxA)],
+        [`${l.service} (${S.settings.serviceCharge}%)`, fmt(svcA)],
+      ].map(([k,v])=>`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;color:var(--text2)"><span>${k}</span><span style="color:var(--text)">${v}</span></div>`).join('')}
+      ${discA>0?`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;color:var(--success)"><span>${l.discount} (${S.settings.discount}%)</span><span>-${fmt(discA)}</span></div>`:''}
+      ${couponApplied?`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px;color:var(--success)"><span>🎟 ${couponApplied.code} (-${couponApplied.pct}%)</span><span>-${fmt(couponDiscA)}</span></div>`:''}
+      <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;justify-content:space-between;font-weight:700;font-size:17px"><span>${l.grandTotal}</span><span style="color:var(--accent)">${fmt(total)}</span></div>
+    </div>
+  </div>`;
+
+  const couponRow = S.settings.enableDiscountCode ? `<div style="display:flex;gap:8px;margin-top:12px">
+    <input id="couponInput" class="form-control" placeholder="${l.couponCode}" style="flex:1" value="${couponApplied?couponApplied.code:''}">
+    <button class="btn btn-outline btn-sm" onclick="applyCoupon()">${l.applyCoupon}</button>
+    ${couponApplied?`<button class="btn btn-outline btn-sm" onclick="removeCoupon()" style="color:var(--danger);border-color:var(--danger)">✕</button>`:''}
+  </div>` : '';
+
+  return `${topBar('🛒 ' + l.yourCart, {showBack:true, backTo:'menu', backLabel:l.menu})}
+  <div class="section" dir="${dir()}">
+    ${cart.length === 0
+      ? `<div style="text-align:center;padding:70px 20px">
+          <div style="font-size:60px;margin-bottom:16px">🛒</div>
+          <p style="color:var(--text2);font-size:15px;margin-bottom:20px">${l.empty}</p>
+          <button class="btn btn-primary" onclick="goTo('menu')">${l.menu}</button>
+        </div>`
+      : `<div class="card"><div class="card-body">${items}</div></div>
+        ${couponRow}
+        ${summary}
+        <button class="btn btn-primary btn-lg" onclick="goTo('checkout')" style="width:100%;margin-top:16px">${l.checkout} →</button>`}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  CHECKOUT
+// ═══════════════════════════════════════════
+function buildCheckout() {
+  const l = T();
+  const total = cartTotal();
+  const ar = isAr();
+  const items = cart.map(i=>`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span>${ar?i.nameAr:i.name} ×${i.qty}</span><span style="font-weight:600">${fmt(i.price*i.qty)}</span></div>`).join('');
+  return `${topBar('📋 ' + l.checkout, {showBack:true, backTo:'cart', backLabel:l.cart})}
+  <div class="section" dir="${dir()}" style="max-width:520px">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">${l.tableNo} *</label>
+          <input id="tableNo" type="number" min="1" max="${S.settings.tableCount}" class="form-control" placeholder="e.g. 5">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label class="form-label">${l.notes}</label>
+          <textarea id="orderNotes" class="form-control" rows="3" placeholder="${ar?'مثال: بدون بصل، صوص إضافي':'e.g. no onions, extra sauce'}"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-body">
+        <div style="font-weight:600;font-size:14px;margin-bottom:12px">📦 Order Summary</div>
+        ${items}
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:8px;display:flex;justify-content:space-between;font-weight:700;font-size:16px">
+          <span>${l.grandTotal}</span><span style="color:var(--accent)">${fmt(total)}</span>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="placeOrder()" style="width:100%">${l.placeOrder}</button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  SUCCESS
+// ═══════════════════════════════════════════
+function buildSuccess() {
+  const l = T(); const ar = isAr();
+  const o = S.orders[S.orders.length - 1];
+  if (!o) { goTo('menu'); return ''; }
+  return `<div class="section" dir="${dir()}" style="max-width:480px;text-align:center;padding-top:40px">
+    <div style="font-size:72px;margin-bottom:16px;animation:pop .5s ease">✅</div>
+    <h2 style="font-size:24px;font-weight:700;margin-bottom:8px">${l.orderPlaced}</h2>
+    <p style="color:var(--text2);margin-bottom:6px">${l.orderId}: <strong style="color:var(--accent);font-size:18px">#${o.id}</strong></p>
+    <p style="color:var(--text2);font-size:13px;margin-bottom:24px">⏱ ${l.estimatedTime}</p>
+    <div class="card" style="text-align:${ar?'right':'left'};margin-bottom:20px">
+      <div class="card-body">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px">${l.table}: <strong>${o.table}</strong></div>
+        ${o.items.map(i=>`<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span>${ar?i.nameAr:i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}
+        <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px;font-weight:700;display:flex;justify-content:space-between"><span>${l.grandTotal}</span><span style="color:var(--accent)">${fmt(o.total)}</span></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="goTo('menu')">${l.backMenu}</button>
+      <button class="btn btn-outline" onclick="printReceipt(${o.id})">🖨️ ${ar?'طباعة الإيصال':'Print Receipt'}</button>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  ADMIN LOGIN
+// ═══════════════════════════════════════════
+function buildLogin() {
+  const l = T();
+  return `<div class="section" dir="${dir()}" style="max-width:380px;padding-top:60px">
+    <div style="text-align:center;margin-bottom:28px"><div style="font-size:48px">🔐</div><h2 style="font-size:22px;font-weight:700;margin-top:12px">${l.admin}</h2></div>
+    <div class="card">
+      <div class="card-body">
+        <div class="form-group"><label class="form-label">${l.username}</label><input id="adminUser" class="form-control" value="admin"></div>
+        <div class="form-group"><label class="form-label">${l.password}</label><input id="adminPass" class="form-control" type="password" value="admin123" onkeydown="if(event.key==='Enter')doLogin()"></div>
+        <div id="loginErr" class="hidden" style="color:var(--danger);font-size:12px;margin-bottom:10px">⚠️ ${l.wrongCreds}</div>
+        <button class="btn btn-primary" onclick="doLogin()" style="width:100%;padding:11px">${l.login}</button>
+        <p style="text-align:center;margin-top:10px;font-size:12px;color:var(--text3)">${l.hint}</p>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <button onclick="goTo('landing')" class="btn btn-outline btn-sm">${isAr()?'→ العودة':'← Back'}</button>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  ADMIN PANEL
+// ═══════════════════════════════════════════
+function buildAdmin() {
+  const l = T(); const ar = isAr();
+  const totalRev = S.orders.filter(o=>o.status==='done').reduce((a,o)=>a+o.total,0);
+  const today = new Date().toDateString();
+  const todayCount = S.orders.filter(o=>new Date(o.date).toDateString()===today).length;
+  const pendingCount = S.orders.filter(o=>o.status==='pending').length;
+
+  const tabs = [
+    {id:'dashboard',icon:'📊',label:l.dashboard},
+    {id:'menu',icon:'🍕',label:l.menuMgmt},
+    {id:'orders',icon:'📋',label:l.orderMgmt},
+    {id:'design',icon:'🎨',label:l.designCtrl},
+    {id:'settings',icon:'⚙️',label:l.settingsTab},
+    {id:'coupons',icon:'🎟',label:l.couponsTab},
+  ];
+
+  let body = '';
+  if (adminSec === 'dashboard') body = buildAdminDashboard(l, totalRev, todayCount, pendingCount);
+  else if (adminSec === 'menu') body = buildAdminMenu(l, ar);
+  else if (adminSec === 'orders') body = buildAdminOrders(l, ar);
+  else if (adminSec === 'design') body = buildAdminDesign(l);
+  else if (adminSec === 'settings') body = buildAdminSettings(l, ar);
+  else if (adminSec === 'coupons') body = buildAdminCoupons(l, ar);
+
+  return `${topBar('👑 ' + l.admin, {})}
+  <div class="section" dir="${dir()}">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+      ${tabs.map(tb=>`<button class="admin-tab${adminSec===tb.id?' active':''}" onclick="setAdminSec('${tb.id}')">${tb.icon} ${tb.label}${tb.id==='orders'&&pendingCount>0?` <span style="background:var(--danger);color:#fff;border-radius:50%;min-width:16px;height:16px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700">${pendingCount}</span>`:''}</button>`).join('')}
+      <button class="btn btn-danger-outline btn-sm" onclick="doLogout()" style="margin-${ar?'right':'left'}:auto">🚪 ${l.logout}</button>
+    </div>
+    ${body}
+  </div>`;
+}
+
+function buildAdminDashboard(l, totalRev, todayCount, pendingCount) {
+  const allOrders = S.orders;
+  const avgOrder = allOrders.length ? allOrders.reduce((a,o)=>a+o.total,0)/allOrders.length : 0;
+  const topItems = (() => {
+    const counts = {};
+    S.orders.forEach(o=>o.items.forEach(i=>{ counts[i.name]=(counts[i.name]||0)+i.qty; }));
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  })();
+  return `
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:20px">
+    ${[
+      [l.totalRev, fmt(totalRev), '💰'],
+      [l.totalOrders, S.orders.length, '📦'],
+      [l.todayOrders, todayCount, '📅'],
+      [l.menuItems, S.menu.length, '🍕'],
+      [l.pendingOrders, pendingCount, '⏳'],
+      ['Avg Order', fmt(avgOrder), '📊'],
+    ].map(([k,v,icon])=>`<div class="stat-card"><div style="font-size:20px;margin-bottom:6px">${icon}</div><div class="stat-value">${v}</div><div class="stat-label">${k}</div></div>`).join('')}
+  </div>
+  ${topItems.length ? `<div class="card" style="margin-bottom:16px">
+    <div class="card-body">
+      <div style="font-weight:600;margin-bottom:12px">🔥 Top Items</div>
+      ${topItems.map(([name,qty],i)=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <span style="font-size:12px;color:var(--text3);min-width:18px">#${i+1}</span>
+        <div style="flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden"><div style="height:100%;background:var(--accent);width:${Math.round(qty/topItems[0][1]*100)}%;border-radius:3px"></div></div>
+        <span style="font-size:13px;min-width:80px">${name}</span>
+        <span class="badge badge-gray">${qty}</span>
+      </div>`).join('')}
+    </div>
+  </div>` : ''}
+  <div class="card">
+    <div class="card-body">
+      <div style="font-weight:600;margin-bottom:12px">${l.recentOrders}</div>
+      ${S.orders.slice(-8).reverse().map(o=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">
+        <span style="font-weight:600">#${o.id}</span>
+        <span style="color:var(--text2)">${l.table} ${o.table}</span>
+        <span style="font-weight:500">${fmt(o.total)}</span>
+        <span class="badge ${o.status==='done'?'badge-green':o.status==='preparing'?'badge-amber':o.status==='cancelled'?'badge-red':'badge-blue'}">${l[o.status]||o.status}</span>
+      </div>`).join('')}
+      ${!S.orders.length ? `<p style="color:var(--text2);text-align:center;padding:20px">${l.noOrders}</p>` : ''}
+    </div>
+  </div>`;
+}
+
+function buildAdminMenu(l, ar) {
+  return `
+  <div style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-size:14px;color:var(--text2)">${S.menu.length} items</div>
+    <button class="btn btn-primary btn-sm" onclick="openItemModal(null)">+ ${l.addItem}</button>
+  </div>
+  <div style="overflow-x:auto">
+    <table class="data-table" style="min-width:600px">
+      <thead><tr>
+        <th style="width:60px">Photo</th>
+        <th>${l.iName}</th>
+        <th>${l.iCat}</th>
+        <th>${l.iPrice}</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>
+        ${S.menu.map(item=>`<tr>
+          <td><img src="${item.img}" style="width:48px;height:40px;object-fit:cover;border-radius:var(--radius)" onerror="this.src='https://via.placeholder.com/48'"></td>
+          <td><div style="font-weight:500">${ar?item.nameAr:item.name}</div><div style="font-size:11px;color:var(--text3)">${(ar?item.descAr:item.desc).slice(0,40)}...</div></td>
+          <td><span class="badge badge-gray">${item.cat}</span></td>
+          <td style="font-weight:600;color:var(--accent)">${fmt(item.price)}</td>
+          <td><span class="badge ${item.available?'badge-green':'badge-red'}">${item.available?'Active':'Off'}</span>${item.featured?`<span class="badge badge-amber" style="margin-${ar?'right':'left'}:4px">★</span>`:''}</td>
+          <td><div style="display:flex;gap:6px">
+            <button class="btn btn-outline btn-sm" onclick="openItemModal(${item.id})">${l.editItem}</button>
+            <button class="btn btn-sm" onclick="toggleItem(${item.id})" style="background:${item.available?'var(--warningbg)':'var(--successbg)'};color:${item.available?'var(--warning)':'var(--success)'};border:1px solid ${item.available?'var(--warning)':'var(--success)'}">${item.available?'Disable':'Enable'}</button>
+            <button class="btn btn-sm btn-danger-outline" onclick="delItem(${item.id})">${l.deleteItem}</button>
+          </div></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function buildAdminOrders(l, ar) {
+  const filtered = filterTable ? S.orders.filter(o=>o.table==filterTable) : S.orders;
+  const tables = [...new Set(S.orders.map(o=>o.table))].sort((a,b)=>a-b);
+  return `
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+    <select class="form-control" style="width:auto" onchange="setFilterTable(this.value)">
+      <option value="">${l.allTables}</option>
+      ${tables.map(t=>`<option value="${t}" ${filterTable==t?'selected':''}>${l.table} ${t}</option>`).join('')}
+    </select>
+    <select class="form-control" style="width:auto" onchange="filterByStatus(this.value)" id="statusFilter">
+      <option value="">All Statuses</option>
+      ${['pending','preparing','done','cancelled'].map(s=>`<option value="${s}">${l[s]}</option>`).join('')}
+    </select>
+    <span style="font-size:13px;color:var(--text2)">${filtered.length} orders</span>
+    <button class="btn btn-outline btn-sm" onclick="exportOrdersCSV()">📥 Export CSV</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    ${filtered.slice().reverse().map(o=>`<div class="card">
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px">
+          <div>
+            <span style="font-weight:700;font-size:15px">#${o.id}</span>
+            <span style="color:var(--text2);font-size:13px;margin:0 8px">${l.table} ${o.table}</span>
+            <span style="font-size:12px;color:var(--text3)">${new Date(o.date).toLocaleString()}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-weight:700;color:var(--accent);font-size:15px">${fmt(o.total)}</span>
+            <span class="badge ${o.status==='done'?'badge-green':o.status==='preparing'?'badge-amber':o.status==='cancelled'?'badge-red':'badge-blue'}">${l[o.status]}</span>
+          </div>
+        </div>
+        ${o.notes?`<div style="font-size:12px;color:var(--text2);margin-bottom:8px;padding:6px 10px;background:var(--bg3);border-radius:var(--radius)">📝 ${o.notes}</div>`:''}
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px">${o.items.map(i=>`${ar?i.nameAr:i.name} ×${i.qty}`).join(' · ')}</div>
+        <div class="status-btns">
+          ${['pending','preparing','done','cancelled'].map(s=>`<button onclick="setStatus('${o.id}','${s}')" class="status-btn ${o.status===s?'active-'+s:''}">${l[s]}</button>`).join('')}
+          <button onclick="printReceipt(${o.id})" class="status-btn" style="margin-${ar?'right':'left'}:auto">🖨️</button>
+        </div>
+      </div>
+    </div>`).join('')}
+    ${!filtered.length ? `<div style="text-align:center;padding:50px;color:var(--text2)">${l.noOrders}</div>` : ''}
+  </div>`;
+}
+
+function buildAdminDesign(l) {
+  const presets = ['#e85d2a','#2563eb','#16a34a','#7c3aed','#dc2626','#d97706','#0891b2','#db2777','#059669','#9333ea'];
+  return `<div class="card" style="max-width:500px">
+    <div class="card-body">
+      <div class="form-group">
+        <label class="form-label">${l.themeColor}</label>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <input type="color" value="${S.settings.accent}" oninput="updAccent(this.value)" style="width:44px;height:36px;border:1px solid var(--border2);cursor:pointer;border-radius:var(--radius)">
+          <code style="font-size:13px;color:var(--text2)" id="accentHex">${S.settings.accent}</code>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${presets.map(c=>`<button onclick="updAccent('${c}')" style="width:30px;height:30px;border-radius:50%;background:${c};border:3px solid ${S.settings.accent===c?'var(--text)':'transparent'};cursor:pointer"></button>`).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">${l.darkModeLabel}</label>
+        <div style="display:flex;gap:8px">
+          ${[['0','☀️ Light'],['1','🌙 Dark']].map(([v,n])=>`<button onclick="updDark(${v})" class="btn ${S.settings.darkMode==!!+v?'btn-primary':'btn-outline'} btn-sm">${n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">${l.fontStyle}</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${[['sans','Sans-serif'],['serif','Serif'],['mono','Monospace'],['cairo','Cairo']].map(([v,n])=>`<button onclick="updFont('${v}')" class="btn ${S.settings.font===v?'btn-primary':'btn-outline'} btn-sm">${n}</button>`).join('')}
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">${l.layoutStyle}</label>
+        <div style="display:flex;gap:8px">
+          <button onclick="updLayout('grid')" class="btn ${S.settings.layout==='grid'?'btn-primary':'btn-outline'} btn-sm">⊞ ${l.grid}</button>
+          <button onclick="updLayout('list')" class="btn ${S.settings.layout==='list'?'btn-primary':'btn-outline'} btn-sm">≡ ${l.list}</button>
+        </div>
+      </div>
+      ${[['taxRate',l.taxRate,'tax',0,30],['svcRate',l.svcRate,'serviceCharge',0,30],['discRate',l.discRate,'discount',0,100]].map(([id,lbl,key,mn,mx])=>`
+      <div class="form-group">
+        <label class="form-label">${lbl}</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="range" id="${id}" value="${S.settings[key]}" min="${mn}" max="${mx}" step="0.5" oninput="updSetting('${key}',+this.value);document.getElementById('${id}val').textContent=this.value+'%'" style="flex:1">
+          <span id="${id}val" style="min-width:40px;font-weight:600;color:var(--accent)">${S.settings[key]}%</span>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function buildAdminSettings(l, ar) {
+  const s = S.settings;
+  return `<div class="card" style="max-width:500px">
+    <div class="card-body">
+      <div style="font-weight:600;margin-bottom:16px">🏪 Restaurant Info</div>
+      ${[
+        ['rName',l.rName,'restaurantName','text'],
+        ['rNameAr',l.rNameAr,'restaurantNameAr','text'],
+        ['rWifi',l.rWifi,'wifi','text'],
+        ['rWifiPass',l.rWifiPass,'wifiPass','text'],
+        ['rOpen',l.rOpen,'openTime','text'],
+        ['rClose',l.rClose,'closeTime','text'],
+        ['tableCount','Table Count','tableCount','number'],
+      ].map(([id,lbl,key,type])=>`<div class="form-group">
+        <label class="form-label">${lbl}</label>
+        <input id="${id}" type="${type}" class="form-control" value="${s[key]||''}">
+      </div>`).join('')}
+      <div style="font-weight:600;margin:16px 0 12px">🔐 Admin Credentials</div>
+      ${[['adminUserInput',l.rAdmin,'adminUser','text'],['adminPassInput',l.rAdminPass,'adminPass','password']].map(([id,lbl,key,type])=>`<div class="form-group">
+        <label class="form-label">${lbl}</label>
+        <input id="${id}" type="${type}" class="form-control" value="${s[key]||''}">
+      </div>`).join('')}
+      <div style="font-weight:600;margin:16px 0 12px">💳 Pricing</div>
+      <div class="form-group">
+        <label class="form-label">Enable Coupon Codes</label>
+        <div style="display:flex;gap:8px">
+          <button onclick="updSetting('enableDiscountCode',true);goTo('admin')" class="btn ${s.enableDiscountCode?'btn-primary':'btn-outline'} btn-sm">On</button>
+          <button onclick="updSetting('enableDiscountCode',false);goTo('admin')" class="btn ${!s.enableDiscountCode?'btn-primary':'btn-outline'} btn-sm">Off</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveAdminSettings()" style="width:100%;margin-top:8px">${l.saveSettings}</button>
+    </div>
+  </div>`;
+}
+
+function buildAdminCoupons(l, ar) {
+  return `<div>
+    <div class="card" style="margin-bottom:16px;max-width:400px">
+      <div class="card-body">
+        <div style="font-weight:600;margin-bottom:12px">+ ${l.addCoupon}</div>
+        <div class="form-group"><label class="form-label">${l.couponCodeLbl}</label><input id="newCouponCode" class="form-control" placeholder="SAVE15" style="text-transform:uppercase"></div>
+        <div class="form-group"><label class="form-label">${l.couponPct}</label><input id="newCouponPct" type="number" class="form-control" placeholder="15" min="1" max="100"></div>
+        <button class="btn btn-primary" onclick="addCoupon()" style="width:100%">+ ${l.addCoupon}</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <div style="font-weight:600;margin-bottom:12px">🎟 Active Coupons</div>
+        ${S.coupons.length ? `<table class="data-table">
+          <thead><tr><th>${l.couponCodeLbl}</th><th>${l.couponPct}</th><th>${l.couponUses}</th><th></th></tr></thead>
+          <tbody>
+            ${S.coupons.map(c=>`<tr>
+              <td><code style="background:var(--bg3);padding:2px 8px;border-radius:4px;font-size:13px">${c.code}</code></td>
+              <td><span class="badge badge-green">${c.pct}% off</span></td>
+              <td>${c.uses}</td>
+              <td><button class="btn btn-sm btn-danger-outline" onclick="deleteCoupon('${c.code}')">${l.deleteCoupon}</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>` : `<p style="color:var(--text2);text-align:center;padding:20px">${l.noCoupons}</p>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  ITEM MODAL
+// ═══════════════════════════════════════════
+function openItemModal(itemId) {
+  const l = T();
+  const item = itemId ? S.menu.find(i=>i.id===itemId) : null;
+  const mc = document.getElementById('modalContainer');
+  mc.innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3 style="font-size:18px;font-weight:600">${item ? l.editItem : l.addItem}</h3>
+        <button onclick="closeModal()" style="background:transparent;border:none;font-size:20px;color:var(--text2);cursor:pointer">✕</button>
+      </div>
+      <div dir="${dir()}">
+        <div class="form-group"><label class="form-label">${l.iName} (English)</label><input id="fi_name" class="form-control" value="${item?item.name:''}"></div>
+        <div class="form-group"><label class="form-label">اسم الصنف (عربي)</label><input id="fi_nameAr" class="form-control" value="${item?item.nameAr:''}" dir="rtl"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group"><label class="form-label">${l.iPrice}</label><input id="fi_price" type="number" class="form-control" value="${item?item.price:''}"></div>
+          <div class="form-group"><label class="form-label">${l.iCat}</label>
+            <select id="fi_cat" class="form-control">
+              ${['Meals','Drinks','Desserts'].map(c=>`<option value="${c}" ${item&&item.cat===c?'selected':''}>${c}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label class="form-label">${l.iDesc} (English)</label><textarea id="fi_desc" class="form-control" rows="2">${item?item.desc:''}</textarea></div>
+        <div class="form-group"><label class="form-label">الوصف (عربي)</label><textarea id="fi_descAr" class="form-control" rows="2" dir="rtl">${item?item.descAr:''}</textarea></div>
+        <div class="form-group"><label class="form-label">${l.iImg}</label><input id="fi_img" class="form-control" placeholder="https://..." value="${item?item.img:''}"></div>
+        <div id="imgPreview" style="margin-bottom:12px;${item&&item.img?'':'display:none'}">
+          <img src="${item?item.img:''}" style="width:100%;height:120px;object-fit:cover;border-radius:var(--radius)" onerror="this.parentElement.style.display='none'">
+        </div>
+        <div style="display:flex;gap:16px;margin-bottom:16px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="fi_available" ${!item||item.available?'checked':''} style="width:16px;height:16px;accent-color:var(--accent)"> ${l.iAvailable}
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+            <input type="checkbox" id="fi_featured" ${item&&item.featured?'checked':''} style="width:16px;height:16px;accent-color:var(--accent)"> ⭐ ${l.featured}
+          </label>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-primary" onclick="saveItemModal(${itemId||'null'})" style="flex:1">${l.saveItem}</button>
+          <button class="btn btn-outline" onclick="closeModal()">${l.cancel}</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  // Live image preview
+  document.getElementById('fi_img').addEventListener('input', function(){
+    const prev = document.getElementById('imgPreview');
+    const img = prev.querySelector('img');
+    img.src = this.value;
+    prev.style.display = this.value ? '' : 'none';
+  });
+}
+
+function closeModal() { document.getElementById('modalContainer').innerHTML = ''; }
+
+function saveItemModal(itemId) {
+  const l = T();
+  const name = document.getElementById('fi_name').value.trim();
+  const nameAr = document.getElementById('fi_nameAr').value.trim();
+  const price = parseFloat(document.getElementById('fi_price').value);
+  const cat = document.getElementById('fi_cat').value;
+  const desc = document.getElementById('fi_desc').value.trim();
+  const descAr = document.getElementById('fi_descAr').value.trim();
+  const img = document.getElementById('fi_img').value.trim() || 'https://via.placeholder.com/400x280/e85d2a/fff?text=Food';
+  const available = document.getElementById('fi_available').checked;
+  const featured = document.getElementById('fi_featured').checked;
+  if (!name || !price) { showToast('Please fill name and price'); return; }
+  if (itemId) {
+    const item = S.menu.find(i=>i.id===itemId);
+    if (item) Object.assign(item, {name, nameAr:nameAr||name, price, cat, desc, descAr:descAr||desc, img, available, featured});
+  } else {
+    S.menu.push({id:S.nextMenuId++, name, nameAr:nameAr||name, price, cat, desc, descAr:descAr||desc, img, available, featured});
+  }
+  save();
+  closeModal();
+  goTo('admin');
+  showToast(itemId ? '✅ Item updated' : '✅ Item added');
+}
+
+// ═══════════════════════════════════════════
+//  SMART CHAT ENGINE (No API needed)
+// ═══════════════════════════════════════════
+const CHAT_KB = {
+  greeting: {
+    en: ['hello','hi','hey','good morning','good evening','good afternoon','marhaba','welcome','howdy','sup'],
+    ar: ['مرحبا','اهلا','السلام','هلا','صباح','مساء','ازيك','ازيكم'],
+    reply: (l,ar) => ar
+      ? `أهلاً وسهلاً! 👋 أنا مساعدك في ${S.settings.restaurantNameAr}. كيف يمكنني مساعدتك اليوم؟`
+      : `Hey there! 👋 Welcome to ${S.settings.restaurantName}! How can I help you today?`
+  },
+  recommend: {
+    en:['recommend','suggestion','popular','best','what should','try','pick','choose','special','favourite','favorite','top','must','famous'],
+    ar:['تنصح','توصية','مشهور','أحسن','ايه','اشرب','اكل','تفضل','مميز','أفضل','شهير','يستاهل'],
+    reply: (l,ar) => {
+      const feat = S.menu.filter(i=>i.featured && i.available);
+      if(!feat.length) return ar ? 'كل أصنافنا مميزة! 😊' : 'Everything on our menu is amazing! 😊';
+      const list = feat.map(i=>`• ${ar?i.nameAr:i.name} — ${fmt(i.price)}`).join('\n');
+      return ar ? `⭐ أنصحك بهذه الأصناف المميزة:\n${list}` : `⭐ Our featured picks:\n${list}`;
+    }
+  },
+  price: {
+    en:['price','cost','how much','expensive','cheap','affordable','money','pay','pound','egp','currency'],
+    ar:['سعر','بكام','تمن','غالي','رخيص','كلفة','فلوس','جنيه'],
+    reply: (l,ar) => {
+      const sorted = [...S.menu].filter(i=>i.available).sort((a,b)=>a.price-b.price);
+      const cheapest = sorted[0]; const priciest = sorted[sorted.length-1];
+      return ar
+        ? `أسعارنا تبدأ من ${fmt(cheapest.price)} (${cheapest.nameAr}) وتصل لـ ${fmt(priciest.price)} (${priciest.nameAr}). العملة هي الجنيه المصري 🇪🇬`
+        : `Prices range from ${fmt(cheapest.price)} (${cheapest.name}) to ${fmt(priciest.price)} (${priciest.name}). All in Egyptian Pounds 🇪🇬`;
+    }
+  },
+  cheapest: {
+    en:['cheapest','lowest price','most affordable','budget','least expensive','value'],
+    ar:['أرخص','أوفر','اقل سعر','بأقل'],
+    reply: (l,ar) => {
+      const sorted = [...S.menu].filter(i=>i.available).sort((a,b)=>a.price-b.price).slice(0,3);
+      const list = sorted.map(i=>`• ${ar?i.nameAr:i.name} — ${fmt(i.price)}`).join('\n');
+      return ar ? `🤑 أرخص 3 أصناف عندنا:\n${list}` : `🤑 Our 3 most affordable items:\n${list}`;
+    }
+  },
+  desserts: {
+    en:['dessert','sweet','chocolate','cake','tiramisu','kunafa','pudding','ice cream','sugar','candy'],
+    ar:['حلو','حلويات','شوكولاتة','كيكة','تيراميسو','كنافة','بودينج','سكر'],
+    reply: (l,ar) => {
+      const dess = S.menu.filter(i=>i.cat==='Desserts' && i.available);
+      if(!dess.length) return ar ? 'مفيش حلويات متاحة حالياً 😔' : 'No desserts available right now 😔';
+      const list = dess.map(i=>`• ${ar?i.nameAr:i.name} — ${fmt(i.price)}`).join('\n');
+      return ar ? `🍰 حلوياتنا:\n${list}` : `🍰 Our desserts:\n${list}`;
+    }
+  },
+  drinks: {
+    en:['drink','juice','coffee','lemonade','water','beverage','tea','soda','smoothie','shake','mango'],
+    ar:['مشروب','عصير','قهوة','ليمون','مياه','شاي','مانجو','سموذي'],
+    reply: (l,ar) => {
+      const drnks = S.menu.filter(i=>i.cat==='Drinks' && i.available);
+      if(!drnks.length) return ar ? 'مفيش مشروبات متاحة حالياً' : 'No drinks available right now';
+      const list = drnks.map(i=>`• ${ar?i.nameAr:i.name} — ${fmt(i.price)}`).join('\n');
+      return ar ? `🥤 مشروباتنا:\n${list}` : `🥤 Our drinks:\n${list}`;
+    }
+  },
+  meals: {
+    en:['meal','food','eat','lunch','dinner','breakfast','main','dish','burger','pizza','chicken','salad','fish','salmon'],
+    ar:['وجبة','اكل','غدا','عشا','فطار','رئيسي','طبق','برجر','بيتزا','دجاج','سلطة','سمك','سلمون'],
+    reply: (l,ar) => {
+      const meals = S.menu.filter(i=>i.cat==='Meals' && i.available);
+      const list = meals.map(i=>`• ${ar?i.nameAr:i.name} — ${fmt(i.price)}`).join('\n');
+      return ar ? `🍽️ وجباتنا الرئيسية:\n${list}` : `🍽️ Our main dishes:\n${list}`;
+    }
+  },
+  vegetarian: {
+    en:['vegetarian','vegan','no meat','plant','veggie','healthy','salad only'],
+    ar:['نباتي','بدون لحم','خضار','صحي','ريجيم'],
+    reply: (l,ar) => ar
+      ? 'عندنا سلطة سيزر والكنافة والحلويات مناسبة للنباتيين 🥗 اسأل عن أي صنف لمعرفة المكونات'
+      : 'We have Caesar Salad and our desserts that are vegetarian-friendly 🥗 Ask about any specific dish for ingredients!'
+  },
+  hours: {
+    en:['hour','open','close','time','when','schedule','available','working'],
+    ar:['ساعات','متاح','مفتوح','يفتح','يقفل','وقت','الدوام'],
+    reply: (l,ar) => ar
+      ? `⏰ نحن نعمل من ${S.settings.openTime} حتى ${S.settings.closeTime} يومياً`
+      : `⏰ We're open daily from ${S.settings.openTime} to ${S.settings.closeTime}`
+  },
+  wifi: {
+    en:['wifi','internet','password','network','connect','hotspot'],
+    ar:['واي فاي','انترنت','كلمة مرور','شبكة','اتصل'],
+    reply: (l,ar) => ar
+      ? `📶 اسم الشبكة: ${S.settings.wifi}\nكلمة المرور: ${S.settings.wifiPass}`
+      : `📶 WiFi: ${S.settings.wifi}\nPassword: ${S.settings.wifiPass}`
+  },
+  allergy: {
+    en:['allergy','allergic','gluten','lactose','nuts','dairy','intolerance'],
+    ar:['حساسية','جلوتين','لاكتوز','مكسرات','دايري','حليب'],
+    reply: (l,ar) => ar
+      ? 'نأسف، يرجى إخبار النادل مباشرة بأي حساسية غذائية وسيهتم بك فريقنا 🙏'
+      : 'Please let our staff know about any allergies when ordering — we\'ll do our best to accommodate you 🙏'
+  },
+  order: {
+    en:['how to order','place order','order now','ordering','how do i order'],
+    ar:['كيف اطلب','طلب','اطلب','أمر','حجز'],
+    reply: (l,ar) => ar
+      ? 'اختر ما تريد من القائمة واضغط "أضف للسلة" ثم اذهب للسلة وأدخل رقم طاولتك وأكد الطلب! 🛒'
+      : 'Browse the menu, tap "Add to Cart" on your items, then go to your cart, enter your table number and confirm! 🛒'
+  },
+  thanks: {
+    en:['thanks','thank you','thx','ty','appreciate','great','awesome','nice'],
+    ar:['شكرا','ممنون','مشكور','تسلم','الله يسلمك','جميل','عظيم'],
+    reply: (l,ar) => ar ? 'على الرحب والسعة! 😊 في أي خدمة تانية؟' : 'You\'re welcome! 😊 Anything else I can help with?'
+  },
+  bye: {
+    en:['bye','goodbye','see you','cya','later','farewell'],
+    ar:['وداعا','مع السلامة','باي','تصبح','خلاص'],
+    reply: (l,ar) => ar ? 'مع السلامة! 👋 أتمنى لك وجبة شهية!' : 'Goodbye! 👋 Enjoy your meal!'
+  },
+};
+
+function chatSmartReply(msg) {
+  const ar = isAr();
+  const lower = msg.toLowerCase().trim();
+  const l = T();
+
+  // Check each category
+  for (const [key, kb] of Object.entries(CHAT_KB)) {
+    const keywords = [...(kb.en||[]), ...(kb.ar||[])];
+    if (keywords.some(kw => lower.includes(kw))) {
+      return kb.reply(l, ar);
+    }
+  }
+
+  // Search menu by name
+  const found = S.menu.find(i =>
+    lower.includes(i.name.toLowerCase()) ||
+    lower.includes(i.nameAr) ||
+    i.desc.toLowerCase().split(' ').some(w => w.length > 3 && lower.includes(w))
+  );
+  if (found) {
+    return ar
+      ? `📋 ${found.nameAr}:\n${found.descAr}\nالسعر: ${fmt(found.price)}\nالحالة: ${found.available?'متوفر ✅':'غير متوفر ❌'}`
+      : `📋 ${found.name}:\n${found.desc}\nPrice: ${fmt(found.price)}\nStatus: ${found.available?'Available ✅':'Unavailable ❌'}`;
+  }
+
+  // Fuzzy: question words
+  if (/كم|much|price|سعر/.test(lower)) {
+    const allPrices = S.menu.filter(i=>i.available).map(i=>`${ar?i.nameAr:i.name}: ${fmt(i.price)}`).join('\n');
+    return ar ? `هذه أسعار جميع أصنافنا:\n${allPrices}` : `Here are all our prices:\n${allPrices}`;
+  }
+
+  // Default
+  const suggestions = S.menu.filter(i=>i.featured && i.available).slice(0,2).map(i=>ar?i.nameAr:i.name).join(', ');
+  return ar
+    ? `لم أفهم سؤالك تماماً 😅 لكن يمكنني مساعدتك في القائمة والأسعار والتوصيات. جرب السؤال عن وجبة بعينها أو اسألني عن أصنافنا المميزة: ${suggestions}`
+    : `I'm not sure I understood that 😅 I can help with menu items, prices, recommendations, and more. Try asking about a specific dish or our featured picks: ${suggestions}`;
+}
+
+// Chat UI functions
+let chatIsOpen = false;
+
+function chatToggle() {
+  chatIsOpen = !chatIsOpen;
+  const panel = document.getElementById('chatPanel');
+  const fab = document.getElementById('chatFab');
+  panel.classList.toggle('hidden', !chatIsOpen);
+  fab.textContent = chatIsOpen ? '✕' : '💬';
+  if (chatIsOpen) {
+    if (chatHistory.length === 0) {
+      setTimeout(() => appendChatMsg('bot', T().chatWelcome), 300);
+    }
+    setTimeout(() => document.getElementById('chatInput')?.focus(), 350);
+  }
+  updateChatLocale();
+}
+
+function updateChatLocale() {
+  const l = T();
+  const bn = document.getElementById('chatBotName');
+  const bs = document.getElementById('chatBotStatus');
+  const ci = document.getElementById('chatInput');
+  if (bn) bn.textContent = l.chatName;
+  if (bs) bs.textContent = l.chatStatus;
+  if (ci) ci.placeholder = l.chatPlaceholder;
+  renderSuggests();
+}
+
+function renderSuggests() {
+  const el = document.getElementById('chatSuggests');
+  if (!el) return;
+  if (chatHistory.length > 1) { el.innerHTML = ''; return; }
+  el.innerHTML = T().chatSuggests.map(s=>`<button class="suggest-chip" onclick="useChip('${s.replace(/'/g,"\\'")}') ">${s}</button>`).join('');
+}
+
+function useChip(text) {
+  const input = document.getElementById('chatInput');
+  if (input) { input.value = text; chatSend(); }
+}
+
+function appendChatMsg(role, text) {
+  chatHistory.push({role, text});
+  const msgs = document.getElementById('chatMsgs');
+  if (!msgs) return;
+  const div = document.createElement('div');
+  div.className = role === 'user' ? 'msg-user' : 'msg-bot';
+  div.style.whiteSpace = 'pre-wrap';
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  renderSuggests();
+}
+
+let chatThinking = false;
+function chatSend() {
+  if (chatThinking) return;
+  const input = document.getElementById('chatInput');
+  if (!input) return;
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  appendChatMsg('user', msg);
+  chatThinking = true;
+
+  // Show typing indicator
+  const msgs = document.getElementById('chatMsgs');
+  const tyDiv = document.createElement('div');
+  tyDiv.className = 'msg-bot'; tyDiv.id = 'typing';
+  tyDiv.innerHTML = '<span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span>';
+  msgs.appendChild(tyDiv); msgs.scrollTop = msgs.scrollHeight;
+
+  // Simulate thinking delay (100–700ms)
+  setTimeout(() => {
+    const ty = document.getElementById('typing');
+    if (ty) ty.remove();
+    chatThinking = false;
+    const reply = chatSmartReply(msg);
+    appendChatMsg('bot', reply);
+  }, 300 + Math.random() * 400);
+}
+
+// ═══════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════
+function toggleLang() {
+  S.settings.lang = S.settings.lang === 'en' ? 'ar' : 'en';
+  selCat = T().cats[0];
+  couponApplied = null;
+  save();
+  applyTheme();
+  goTo(currentView);
+  updateChatLocale();
+}
+
+function toggleDark() {
+  S.settings.darkMode = !S.settings.darkMode;
+  save();
+  applyTheme();
+  goTo(currentView);
+}
+
+function addToCart(id) {
+  const item = S.menu.find(i=>i.id===id);
+  if (!item || !item.available) return;
+  const ex = cart.find(i=>i.id===id);
+  if (ex) ex.qty++;
+  else cart.push({...item, qty:1});
+  showToast('✅ ' + T().addedCart);
+  goTo(currentView);
+}
+
+function chgQty(id, d) {
+  const i = cart.find(x=>x.id===id);
+  if (!i) return;
+  i.qty += d;
+  if (i.qty <= 0) cart = cart.filter(x=>x.id!==id);
+  goTo(currentView);
+}
+
+function removeItem(id) { cart = cart.filter(x=>x.id!==id); goTo(currentView); }
+
+function applyCoupon() {
+  const code = document.getElementById('couponInput')?.value.trim().toUpperCase();
+  if (!code) return;
+  const c = S.coupons.find(x=>x.code===code);
+  if (c) {
+    couponApplied = c;
+    c.uses++;
+    save();
+    showToast('🎉 ' + T().couponOk);
+    goTo('cart');
+  } else {
+    showToast('❌ ' + T().couponBad);
+  }
+}
+
+function removeCoupon() { couponApplied = null; goTo('cart'); }
+
+function placeOrder() {
+  const tbl = document.getElementById('tableNo')?.value;
+  const notes = document.getElementById('orderNotes')?.value || '';
+  if (!tbl) { showToast('⚠️ ' + (isAr()?'أدخل رقم الطاولة':'Enter table number')); return; }
+  if (+tbl < 1 || +tbl > S.settings.tableCount) {
+    showToast(`⚠️ Table must be 1–${S.settings.tableCount}`);
+    return;
+  }
+  const order = {
+    id: S.nextOrderId++,
+    table: tbl,
+    notes,
+    items: cart.map(i=>({...i})),
+    total: cartTotal(),
+    status: 'pending',
+    date: new Date().toISOString(),
+    coupon: couponApplied?.code || null,
+  };
+  S.orders.push(order);
+  cart = [];
+  couponApplied = null;
+  save();
+  goTo('success');
+}
+
+function setCat(c) { selCat = c; goTo('menu'); }
+function setAdminSec(s) { adminSec = s; goTo('admin'); }
+function setFilterTable(v) { filterTable = v; goTo('admin'); }
+function filterByStatus(v) { /* could filter orders */ goTo('admin'); }
+
+function doLogin() {
+  const u = document.getElementById('adminUser').value;
+  const p = document.getElementById('adminPass').value;
+  if (u === S.settings.adminUser && p === S.settings.adminPass) {
+    S.adminLoggedIn = true; save(); adminSec = 'dashboard'; goTo('admin');
+  } else {
+    document.getElementById('loginErr').classList.remove('hidden');
+  }
+}
+
+function doLogout() { S.adminLoggedIn = false; save(); goTo('landing'); }
+
+function toggleItem(id) {
+  const item = S.menu.find(i=>i.id===id);
+  if (item) { item.available = !item.available; save(); goTo('admin'); }
+}
+
+function delItem(id) {
+  if (!confirm(isAr()?'حذف هذا الصنف؟':'Delete this item?')) return;
+  S.menu = S.menu.filter(i=>i.id!==id);
+  save(); goTo('admin');
+  showToast('🗑️ Item deleted');
+}
+
+function setStatus(id, s) {
+  const o = S.orders.find(x=>x.id==id);
+  if (o) { o.status = s; save(); goTo('admin'); }
+}
+
+function updAccent(v) {
+  S.settings.accent = v;
+  save(); applyTheme();
+  const hex = document.getElementById('accentHex');
+  if (hex) hex.textContent = v;
+}
+function updDark(v) { S.settings.darkMode = !!+v; save(); applyTheme(); goTo('admin'); }
+function updFont(v) { S.settings.font = v; save(); applyTheme(); goTo('admin'); }
+function updLayout(v) { S.settings.layout = v; save(); goTo('admin'); }
+function updSetting(k, v) { S.settings[k] = (typeof v === 'boolean') ? v : (isNaN(+v) ? v : +v); save(); }
+
+function saveAdminSettings() {
+  const fields = {
+    restaurantName:'rName', restaurantNameAr:'rNameAr',
+    wifi:'rWifi', wifiPass:'rWifiPass',
+    openTime:'rOpen', closeTime:'rClose',
+    tableCount:'tableCount', adminUser:'adminUserInput', adminPass:'adminPassInput',
+  };
+  for (const [key, id] of Object.entries(fields)) {
+    const el = document.getElementById(id);
+    if (el) S.settings[key] = el.value;
+  }
+  save();
+  showToast('✅ ' + T().settingsSaved);
+  goTo('admin');
+}
+
+function addCoupon() {
+  const code = document.getElementById('newCouponCode')?.value.trim().toUpperCase();
+  const pct = parseFloat(document.getElementById('newCouponPct')?.value);
+  if (!code || !pct || pct < 1 || pct > 100) { showToast('Fill code and valid %'); return; }
+  if (S.coupons.find(c=>c.code===code)) { showToast('Code already exists'); return; }
+  S.coupons.push({code, pct, uses:0});
+  save(); goTo('admin');
+  showToast('✅ Coupon added');
+}
+
+function deleteCoupon(code) {
+  if (!confirm(`Delete coupon ${code}?`)) return;
+  S.coupons = S.coupons.filter(c=>c.code!==code);
+  save(); goTo('admin');
+}
+
+function exportOrdersCSV() {
+  const rows = [['ID','Table','Items','Total','Status','Date','Notes']];
+  S.orders.forEach(o => rows.push([
+    o.id, o.table,
+    o.items.map(i=>`${i.name}x${i.qty}`).join('; '),
+    o.total, o.status,
+    new Date(o.date).toLocaleString(),
+    o.notes || ''
+  ]));
+  const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = `orders_${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  showToast('📥 CSV exported');
+}
+
+function printReceipt(orderId) {
+  const o = S.orders.find(x=>x.id===orderId);
+  if (!o) return;
+  const l = T(); const ar = isAr();
+  const win = window.open('', '_blank', 'width=350,height=600');
+  win.document.write(`<!DOCTYPE html><html><head><title>Receipt #${o.id}</title>
+  <style>body{font-family:monospace;padding:20px;font-size:13px;max-width:300px;margin:0 auto}
+  h2{text-align:center;font-size:16px}hr{border:none;border-top:1px dashed #999;margin:10px 0}
+  .row{display:flex;justify-content:space-between;margin:4px 0}
+  .total{font-weight:bold;font-size:15px}.center{text-align:center}</style></head>
+  <body dir="${dir()}">
+  <h2>🍽️ ${S.settings.lang==='ar'?S.settings.restaurantNameAr:S.settings.restaurantName}</h2>
+  <hr>
+  <div class="center">${l.orderId}: #${o.id}</div>
+  <div class="center">${l.table}: ${o.table}</div>
+  <div class="center">${new Date(o.date).toLocaleString()}</div>
+  <hr>
+  ${o.items.map(i=>`<div class="row"><span>${ar?i.nameAr:i.name} ×${i.qty}</span><span>${fmt(i.price*i.qty)}</span></div>`).join('')}
+  <hr>
+  <div class="row total"><span>${l.grandTotal}</span><span>${fmt(o.total)}</span></div>
+  ${o.notes?`<hr><div class="center">📝 ${o.notes}</div>`:''}
+  <hr>
+  <div class="center" style="margin-top:12px">شكراً · Thank you!</div>
+  <div class="center" style="font-size:11px;color:#999;margin-top:6px">${S.settings.wifi} · ${S.settings.wifiPass}</div>
+  </body></html>`);
+  win.document.close();
+  setTimeout(() => win.print(), 500);
+}
+
+// Toast
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._to);
+  t._to = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ═══════════════════════════════════════════
+//  BOOT
+// ═══════════════════════════════════════════
+applyTheme();
+goTo('landing');
+</script>
+</body>
+</html>
